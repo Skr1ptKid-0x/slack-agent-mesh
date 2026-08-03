@@ -20,14 +20,18 @@ function cmd(cfg: Record<string, unknown>, env?: NodeJS.ProcessEnv) {
 
 describe('CommandAdapter', () => {
   it('returns stdout on success', async () => {
-    const a = cmd({ command: ['node', '-e', "process.stdout.write('hi from child')"] })
+    const a = cmd({ command: [process.execPath, '-e', "process.stdout.write('hi from child')"] })
     const r = await a.invoke(REQ)
     expect(r).toEqual({ ok: true, text: 'hi from child' })
   })
 
   it('passes turn metadata via MESH_* env', async () => {
     const a = cmd({
-      command: ['node', '-e', 'process.stdout.write(process.env.MESH_AGENT+process.env.MESH_HOP)'],
+      command: [
+        process.execPath,
+        '-e',
+        'process.stdout.write(process.env.MESH_AGENT+process.env.MESH_HOP)',
+      ],
     })
     const r = await a.invoke(REQ)
     expect(r.ok && r.text).toBe('rook0')
@@ -36,7 +40,7 @@ describe('CommandAdapter', () => {
   it('only forwards allowlisted env', async () => {
     const a = cmd(
       {
-        command: ['node', '-e', 'process.stdout.write(String(process.env.SECRET_X))'],
+        command: [process.execPath, '-e', 'process.stdout.write(String(process.env.SECRET_X))'],
         env_allowlist: [],
       },
       { SECRET_X: 'leaked' },
@@ -48,7 +52,7 @@ describe('CommandAdapter', () => {
   it('forwards an explicitly allowlisted env var', async () => {
     const a = cmd(
       {
-        command: ['node', '-e', 'process.stdout.write(String(process.env.ALLOWED))'],
+        command: [process.execPath, '-e', 'process.stdout.write(String(process.env.ALLOWED))'],
         env_allowlist: ['ALLOWED'],
       },
       { ALLOWED: 'yes' },
@@ -58,7 +62,7 @@ describe('CommandAdapter', () => {
   })
 
   it('fails closed on non-zero exit', async () => {
-    const a = cmd({ command: ['node', '-e', 'process.exit(3)'] })
+    const a = cmd({ command: [process.execPath, '-e', 'process.exit(3)'] })
     const r = await a.invoke(REQ)
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.kind).toBe('nonzero_exit')
@@ -67,7 +71,7 @@ describe('CommandAdapter', () => {
   it('never surfaces child stderr contents in adapter errors', async () => {
     const marker = 'private-child-stderr-value'
     const a = cmd({
-      command: ['node', '-e', `process.stderr.write('${marker}'); process.exit(7)`],
+      command: [process.execPath, '-e', `process.stderr.write('${marker}'); process.exit(7)`],
     })
     const r = await a.invoke(REQ)
     expect(r.ok).toBe(false)
@@ -79,7 +83,10 @@ describe('CommandAdapter', () => {
   })
 
   it('fails closed on timeout', async () => {
-    const a = cmd({ command: ['node', '-e', 'setTimeout(()=>{}, 10000)'], timeout_ms: 200 })
+    const a = cmd({
+      command: [process.execPath, '-e', 'setTimeout(()=>{}, 10000)'],
+      timeout_ms: 200,
+    })
     const r = await a.invoke(REQ)
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.kind).toBe('timeout')
@@ -87,7 +94,7 @@ describe('CommandAdapter', () => {
 
   it('fails closed when output exceeds the cap', async () => {
     const a = cmd({
-      command: ['node', '-e', "process.stdout.write('x'.repeat(5000))"],
+      command: [process.execPath, '-e', "process.stdout.write('x'.repeat(5000))"],
       max_output_bytes: 100,
     })
     const r = await a.invoke(REQ)
