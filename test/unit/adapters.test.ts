@@ -1,4 +1,7 @@
 import type { spawn } from 'node:child_process'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { CommandAdapter } from '../../src/adapters/command.js'
 import { MockAdapter } from '../../src/adapters/mock.js'
@@ -90,6 +93,54 @@ describe('CommandAdapter', () => {
     const r = await a.invoke(REQ)
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.kind).toBe('timeout')
+  })
+
+  it.skipIf(process.platform === 'win32')('kills descendant processes on timeout', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'mesh-command-tree-'))
+    const pidFile = join(dir, 'grandchild.pid')
+    const script = [
+      "const { spawn } = require('node:child_process')",
+      "const { writeFileSync } = require('node:fs')",
+      "const child = spawn(process.execPath, ['-e', 'setInterval(()=>{},1000)'], { stdio: 'ignore' })",
+      'writeFileSync(process.env.PID_FILE, String(child.pid))',
+      'setInterval(()=>{},1000)',
+    ].join(';')
+    const a = cmd(
+      {
+        command: [process.execPath, '-e', script],
+        timeout_ms: 250,
+        env_allowlist: ['PID_FILE'],
+      },
+      { PID_FILE: pidFile },
+    )
+
+    let grandchildPid = 0
+    try {
+      const r = await a.invoke(REQ)
+      expect(r.ok).toBe(false)
+      if (!r.ok) expect(r.kind).toBe('timeout')
+      grandchildPid = Number(readFileSync(pidFile, 'utf8'))
+
+      let alive = true
+      for (let i = 0; i < 40 && alive; i += 1) {
+        try {
+          process.kill(grandchildPid, 0)
+          await new Promise((resolve) => setTimeout(resolve, 25))
+        } catch {
+          alive = false
+        }
+      }
+      expect(alive).toBe(false)
+    } finally {
+      if (grandchildPid > 0) {
+        try {
+          process.kill(grandchildPid, 'SIGKILL')
+        } catch {
+          // Already terminated, which is the expected path.
+        }
+      }
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 
   it('fails closed when output exceeds the cap', async () => {

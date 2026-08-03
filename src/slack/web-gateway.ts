@@ -82,6 +82,7 @@ export class WebApiGateway implements SlackGateway {
       channel: input.channel,
       ts: input.threadTs,
       limit: input.limit ?? 100,
+      include_all_metadata: true,
     })
     const messages = res.messages ?? []
     return messages.map((m) => {

@@ -8,7 +8,7 @@ broker admits the right messages, invokes your existing agents through pluggable
 adapters, routes agent-to-agent delegation, and keeps everything in one durable,
 human-visible Slack thread — without you adopting any particular model SDK.
 
-> **Status:** release candidate. 143 automated tests pass (`npm test` + `npm run
+> **Status:** release candidate. 146 automated tests pass (`npm test` + `npm run
 > test:acceptance`). The credential-free demo runs with no network access. A live
 > Slack workspace test is **NOT RUN** in this tree — see
 > [Limitations](#limitations-and-non-parity).
@@ -626,7 +626,7 @@ Legend: ✅ implemented · ⚠️ partial/with caveats · ➖ not applicable · 
 
 ## Limitations and non-parity
 
-- **No live Slack test in this tree.** All 143 automated tests and the demo pass
+- **No live Slack test in this tree.** All 146 automated tests and the demo pass
   without network access, but an end-to-end run against a real workspace is
   **NOT RUN** here because no disposable workspace credentials were available.
   Treat live behavior as verified-by-construction (unit + acceptance) until you
@@ -668,9 +668,9 @@ Release-gate commands (all green on this tree):
 npm ci
 npm run lint
 npm run typecheck
-npm test               # 90 unit tests
+npm test               # 119 unit tests
 npm run build
-npm run test:acceptance # 19 acceptance tests
+npm run test:acceptance # 27 acceptance tests
 npm run demo -- --script examples/demo-conversation.json
 ```
 

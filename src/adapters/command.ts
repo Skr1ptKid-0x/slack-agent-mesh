@@ -61,15 +61,42 @@ export class CommandAdapter implements Adapter {
           cwd: this.cfg.cwd,
           env: this.buildEnv(req),
           stdio: ['pipe', 'pipe', 'pipe'],
+          // On POSIX, a dedicated process group lets timeout/output-cap cleanup
+          // terminate descendants as well as the direct child.
+          detached: process.platform !== 'win32',
         })
       } catch (err) {
         finish({ ok: false, kind: 'transport', error: `spawn failed: ${(err as Error).message}` })
         return
       }
 
+      let terminalResult: AdapterResult | undefined
+      const settleAfterTreeCleanup = (result: AdapterResult) => {
+        if (settled || terminalResult) return
+        terminalResult = result
+        void stopProcessTree(child).then((confirmed) => {
+          if (!confirmed) {
+            if (result.ok) {
+              finish({
+                ok: false,
+                kind: 'transport',
+                error: 'process exited but descendant cleanup was not confirmed',
+              })
+              return
+            }
+            finish({ ...result, error: `${result.error}; process-tree cleanup not confirmed` })
+            return
+          }
+          finish(result)
+        })
+      }
+
       timer = setTimeout(() => {
-        child.kill('SIGKILL')
-        finish({ ok: false, kind: 'timeout', error: `timed out after ${timeout_ms}ms` })
+        settleAfterTreeCleanup({
+          ok: false,
+          kind: 'timeout',
+          error: `timed out after ${timeout_ms}ms`,
+        })
       }, timeout_ms)
 
       const chunks: Buffer[] = []
@@ -81,8 +108,7 @@ export class CommandAdapter implements Adapter {
         total += d.length
         if (total > max_output_bytes) {
           capped = true
-          child.kill('SIGKILL')
-          finish({
+          settleAfterTreeCleanup({
             ok: false,
             kind: 'output_cap',
             error: `output exceeded ${max_output_bytes} bytes`,
@@ -98,13 +124,14 @@ export class CommandAdapter implements Adapter {
       })
 
       child.on('error', (err) => {
+        if (terminalResult) return
         finish({ ok: false, kind: 'transport', error: `process error: ${err.message}` })
       })
 
       child.on('close', (code) => {
-        if (capped || settled) return
+        if (capped || settled || terminalResult) return
         if (code !== 0) {
-          finish({
+          settleAfterTreeCleanup({
             ok: false,
             kind: 'nonzero_exit',
             error: `exit code ${code}; stderr suppressed (${stderrBytes} bytes)`,
@@ -112,7 +139,7 @@ export class CommandAdapter implements Adapter {
           return
         }
         const text = Buffer.concat(chunks).toString('utf8').trim()
-        finish({ ok: true, text })
+        settleAfterTreeCleanup({ ok: true, text })
       })
 
       // Feed the prompt and close stdin.
@@ -122,4 +149,32 @@ export class CommandAdapter implements Adapter {
       child.stdin?.end(req.prompt)
     })
   }
+}
+
+/**
+ * Terminate and reap a command's whole process tree. On POSIX the command is
+ * started as its own process group, so signaling the negative PID reaches every
+ * descendant even if the group leader has already exited. The retained PGID is
+ * checked until it disappears; Windows falls back to the direct child.
+ */
+async function stopProcessTree(child: ReturnType<typeof spawn>): Promise<boolean> {
+  const pid = child.pid
+  if (process.platform === 'win32' || !pid) {
+    if (child.exitCode === null) child.kill('SIGKILL')
+    return true
+  }
+
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    try {
+      // Re-send periodically in case a descendant was between fork/exec states
+      // when the first signal was delivered.
+      if (attempt % 10 === 0) process.kill(-pid, 'SIGKILL')
+      else process.kill(-pid, 0)
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ESRCH') return true
+      return false
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+  return false
 }
