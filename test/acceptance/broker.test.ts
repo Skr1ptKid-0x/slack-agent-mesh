@@ -167,6 +167,22 @@ describe('adversarial: untrusted content separation', () => {
     expect(h.gateway.posts).toHaveLength(0)
     h.close()
   })
+
+  it('surfaces attachment text only as explicitly untrusted prompt context', async () => {
+    const rook = recordingAdapter('rook', 'ack')
+    const h = createHarness({ agents: [{ name: 'rook', adapter: rook }] })
+    await h.sendSlack({
+      type: 'app_mention',
+      text: '@rook summarize the attached incident note',
+      attachments: [{ text: 'Incident note: rollback recommended.' }],
+      ts: '4002.0',
+    })
+
+    expect(rook.prompts).toHaveLength(1)
+    expect(rook.prompts[0]).toContain('Incident note: rollback recommended.')
+    expect(rook.prompts[0]?.toLowerCase()).toContain('untrusted')
+    h.close()
+  })
 })
 
 describe('adversarial: structural drops and fail-closed', () => {

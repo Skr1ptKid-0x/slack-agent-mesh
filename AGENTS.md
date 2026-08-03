@@ -20,7 +20,7 @@ invariants that must always hold.
 ```bash
 npm ci
 npm run demo -- --script examples/demo-conversation.json   # deterministic human → @rook → @scout
-npm test && npm run test:acceptance                        # 143 tests
+npm test && npm run test:acceptance                        # 146 tests
 ```
 
 The demo and tests use the mock adapter and an in-memory gateway — no Slack app,

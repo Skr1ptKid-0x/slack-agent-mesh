@@ -2,6 +2,14 @@
   "name": "slack-agent-mesh",
   "version": "0.1.0",
   "description": "Portable, open-source Slack transport and coordination layer for existing agents.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nickvasilescu/slack-agent-mesh.git"
+  },
+  "homepage": "https://github.com/nickvasilescu/slack-agent-mesh#readme",
+  "bugs": {
+    "url": "https://github.com/nickvasilescu/slack-agent-mesh/issues"
+  },
   "license": "MIT",
   "type": "module",
   "engines": {

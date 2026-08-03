@@ -9,6 +9,9 @@ npm ci && npm run build
 node dist/cli.js mcp --config /abs/path/slack-agent-mesh/mesh.config.yaml
 ```
 
+The package is not published to npm. Clone and build this repository, then use
+the absolute local `dist/cli.js` path as shown below.
+
 Without Slack tokens in the environment, the server runs against the in-memory
 **mock gateway** — useful for local testing of the tool surface with no
 credentials. With `SLACK_BOT_TOKEN` / `SLACK_APP_TOKEN` present it talks to the
@@ -70,8 +73,8 @@ Most JSON-configured clients accept the same shape as Claude Code:
 {
   "mcpServers": {
     "slack-agent-mesh": {
-      "command": "npx",
-      "args": ["slack-agent-mesh", "mcp", "--config", "/abs/path/mesh.config.yaml"]
+      "command": "node",
+      "args": ["/abs/path/slack-agent-mesh/dist/cli.js", "mcp", "--config", "/abs/path/slack-agent-mesh/mesh.config.yaml"]
     }
   }
 }
@@ -83,8 +86,8 @@ Any client that speaks the Model Context Protocol over stdio launches the exact
 same command:
 
 ```
-command: npx
-args:    ["slack-agent-mesh", "mcp", "--config", "/abs/path/mesh.config.yaml"]
+command: node
+args:    ["/abs/path/slack-agent-mesh/dist/cli.js", "mcp", "--config", "/abs/path/slack-agent-mesh/mesh.config.yaml"]
 ```
 
 Pass `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN` in the child environment for live
