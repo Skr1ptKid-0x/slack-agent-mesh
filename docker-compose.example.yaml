@@ -1,0 +1,24 @@
+# Example docker-compose for running the mesh broker in Socket Mode.
+# No inbound ports are exposed: Socket Mode dials out to Slack.
+services:
+  mesh:
+    build: .
+    # Or use a published image once available:
+    # image: ghcr.io/OWNER/slack-agent-mesh:latest
+    command: ["serve", "--config", "mesh.config.yaml"]
+    environment:
+      # Secrets are injected from the host environment / .env file — never baked
+      # into the image or committed. See .env.example.
+      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
+      SLACK_APP_TOKEN: ${SLACK_APP_TOKEN}
+      SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET:-}
+      SCOUT_WEBHOOK_URL: ${SCOUT_WEBHOOK_URL:-}
+      SCOUT_WEBHOOK_SECRET: ${SCOUT_WEBHOOK_SECRET:-}
+    volumes:
+      # Your real config and durable state.
+      - ./mesh.config.yaml:/app/mesh.config.yaml:ro
+      - mesh-state:/app/.mesh
+    restart: unless-stopped
+
+volumes:
+  mesh-state:

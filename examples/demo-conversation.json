@@ -1,0 +1,37 @@
+{
+  "title": "Incident triage: human -> @rook -> @scout",
+  "config": {
+    "mesh": {
+      "max_hops": 4,
+      "max_messages": 12,
+      "trace_ttl_seconds": 3600,
+      "state_path": ":memory:"
+    },
+    "agents": [
+      {
+        "name": "rook",
+        "description": "Incident commander. Triages and delegates.",
+        "adapter": {
+          "type": "mock",
+          "reply": "Acknowledged. The 500s line up with the 15:42 deploy. @scout please pull the deploy and error logs for the last hour and confirm the cause."
+        }
+      },
+      {
+        "name": "scout",
+        "description": "Log and metrics investigator.",
+        "adapter": {
+          "type": "mock",
+          "reply": "Confirmed: the 15:42 deploy shipped a bad DATABASE_URL. Errors started at 15:43. Recommend immediate rollback. No further delegation needed."
+        }
+      }
+    ]
+  },
+  "messages": [
+    {
+      "type": "app_mention",
+      "channel": "C_DEMO",
+      "user": "U_HUMAN",
+      "text": "@rook production API is throwing 500s, please investigate"
+    }
+  ]
+}

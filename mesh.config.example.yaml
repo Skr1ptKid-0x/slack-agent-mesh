@@ -1,0 +1,46 @@
+# Slack Agent Mesh — example configuration.
+#
+# SECRET BOUNDARY: every field below references the NAME of an environment
+# variable, never a token value. A literal `xoxb-…`, `xapp-…`, or signing
+# secret in this file fails validation. Put real values in your environment
+# (see .env.example), not here.
+
+mesh:
+  # Loop-prevention budget for a single human-initiated trace.
+  max_hops: 4 # max delegation depth (human -> a -> b -> ...)
+  max_messages: 12 # max agent turns per trace
+  trace_ttl_seconds: 3600 # a trace older than this can no longer delegate
+  debug: false # when true, prompts are logged (still redacted for tokens)
+  state_path: .mesh/state.sqlite # SQLite persistence; ':memory:' for ephemeral
+
+  slack:
+    bot_token_env: SLACK_BOT_TOKEN # xoxb- token, resolved from this env var
+    app_token_env: SLACK_APP_TOKEN # xapp- Socket Mode token
+    signing_secret_env: SLACK_SIGNING_SECRET # only needed for HTTP mode
+
+agents:
+  # A local command-adapter agent (e.g. Hermes, Claude Code, Codex, any CLI that
+  # reads a prompt on stdin and writes a response to stdout).
+  - name: rook
+    description: Incident commander. Triages production issues and delegates.
+    presence: on-call
+    adapter:
+      type: command
+      command: ["./examples/agents/echo-agent.sh"] # replace with your agent CLI
+      timeout_ms: 60000
+      max_output_bytes: 65536
+      # Only these env vars are forwarded to the child process. Nothing else
+      # from the mesh environment leaks in.
+      env_allowlist: ["PATH", "HOME", "LANG"]
+      env_pass: [] # additional env NAMES to forward if present
+
+  # A remote agent reached over signed HTTP (webhook adapter).
+  - name: scout
+    description: Log and metrics investigator. Runs read-only diagnostics.
+    presence: available
+    adapter:
+      type: webhook
+      url_env: SCOUT_WEBHOOK_URL # e.g. https://scout.internal/agent
+      secret_env: SCOUT_WEBHOOK_SECRET # required HMAC signing secret
+      timeout_ms: 30000
+      max_output_bytes: 65536
