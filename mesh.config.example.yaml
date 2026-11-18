@@ -12,6 +12,10 @@ mesh:
   trace_ttl_seconds: 3600 # a trace older than this can no longer delegate
   debug: false # when true, prompts are logged (still redacted for tokens)
   state_path: .mesh/state.sqlite # SQLite persistence; ':memory:' for ephemeral
+  # Who may start a turn, and where. Empty lists admit any non-bot user in any
+  # channel or DM the app can see, so set both for a real workspace.
+  allowed_users: [] # Slack user ids, e.g. ["U0123ABCD"]
+  allowed_channels: [] # Slack channel or DM ids, e.g. ["C0123ABCD"]
 
   slack:
     bot_token_env: SLACK_BOT_TOKEN # xoxb- token, resolved from this env var

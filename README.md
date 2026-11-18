@@ -520,6 +520,10 @@ ephemeral/testing runs.
 The threat model is: **untrusted humans and untrusted agent output share a Slack
 channel, and secrets must never leak.**
 
+- **Sender and channel allowlists.** `mesh.allowed_users` and
+  `mesh.allowed_channels` restrict who may start a turn and where. A message
+  outside them is dropped silently before any adapter runs. Both default to
+  empty, which admits any non-bot user in any channel or DM the app can see.
 - **Secrets stay in the environment.** Config references env-var *names*. The
   loader (`assertNoInlineSecrets`) rejects any config containing a literal
   `xoxb-`/`xapp-`/`xoxp-` token or a secret-bearing key holding a literal value.

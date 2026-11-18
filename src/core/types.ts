@@ -77,6 +77,7 @@ export type AdmissionReason =
   | 'mcp_send'
   | 'duplicate_event'
   | 'not_addressed'
+  | 'not_allowed'
   | 'bot_or_system'
   | 'echo_self_output'
   | 'edited_message'

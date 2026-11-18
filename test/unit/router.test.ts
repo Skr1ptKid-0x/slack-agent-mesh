@@ -5,13 +5,21 @@ import { Router } from '../../src/core/router.js'
 import type { IngressMessage } from '../../src/core/types.js'
 import { SqliteStore } from '../../src/store/sqlite.js'
 
-function setup(overrides?: { maxHops?: number; maxMessages?: number; ttl?: number }) {
+function setup(overrides?: {
+  maxHops?: number
+  maxMessages?: number
+  ttl?: number
+  allowedUsers?: string[]
+  allowedChannels?: string[]
+}) {
   const config = validateConfig({
     mesh: {
       max_hops: overrides?.maxHops ?? 4,
       max_messages: overrides?.maxMessages ?? 12,
       trace_ttl_seconds: overrides?.ttl ?? 3600,
       state_path: ':memory:',
+      allowed_users: overrides?.allowedUsers ?? [],
+      allowed_channels: overrides?.allowedChannels ?? [],
     },
     agents: [
       { name: 'rook', adapter: { type: 'mock', reply: '' } },
@@ -99,6 +107,43 @@ describe('human admission', () => {
     const d = router.admit(human({ kind: 'thread_reply', threadTs: '5.0', text: 'continue' }))
     expect(d.admit).toBe(true)
     expect(d.targets).toEqual(['scout'])
+  })
+})
+
+describe('sender and channel allowlists', () => {
+  it('admits an allowed sender in an allowed channel', () => {
+    const { router } = setup({ allowedUsers: ['U1'], allowedChannels: ['C1'] })
+    const d = router.admit(human({ text: '@rook help' }))
+    expect(d.admit).toBe(true)
+    expect(d.targets).toEqual(['rook'])
+  })
+
+  it('rejects a sender outside allowed_users', () => {
+    const { router } = setup({ allowedUsers: ['U1'] })
+    const d = router.admit(human({ senderId: 'U2', text: '@rook help' }))
+    expect(d.admit).toBe(false)
+    expect(d.reason).toBe('not_allowed')
+  })
+
+  it('rejects a channel outside allowed_channels, including a DM', () => {
+    const { router } = setup({ allowedChannels: ['C1'] })
+    const d = router.admit(human({ kind: 'direct_message', channel: 'D9', text: '@rook help' }))
+    expect(d.admit).toBe(false)
+    expect(d.reason).toBe('not_allowed')
+  })
+
+  it('rejects a disallowed sender replying in a thread the mesh owns', () => {
+    const { router, store } = setup({ allowedUsers: ['U1'] })
+    store.registerThread('C1', '1.0', 'rook')
+    const d = router.admit(human({ kind: 'thread_reply', senderId: 'U2', text: 'carry on' }))
+    expect(d.admit).toBe(false)
+    expect(d.reason).toBe('not_allowed')
+  })
+
+  it('admits anyone when both lists are empty', () => {
+    const { router } = setup()
+    const d = router.admit(human({ senderId: 'U2', channel: 'C2', text: '@rook help' }))
+    expect(d.admit).toBe(true)
   })
 })
 

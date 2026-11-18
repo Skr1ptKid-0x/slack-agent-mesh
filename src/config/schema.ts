@@ -81,6 +81,10 @@ export const meshSchema = z.object({
   debug: z.boolean().default(false),
   /** Path to the SQLite state file; ':memory:' for ephemeral runs. */
   state_path: z.string().default('.mesh/state.sqlite'),
+  /** Slack user ids allowed to start a turn. Empty admits any non-bot user. */
+  allowed_users: z.array(z.string().min(1)).default([]),
+  /** Slack channel ids (including DM ids) the mesh acts in. Empty admits all. */
+  allowed_channels: z.array(z.string().min(1)).default([]),
   slack: slackSchema,
 })
 
