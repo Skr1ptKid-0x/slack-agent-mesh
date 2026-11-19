@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+# Read only: CI never needs to write to the repository.
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -13,16 +17,22 @@ jobs:
       matrix:
         node-version: ['22.x', '24.x']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Use Node ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
 
-      - name: Install (clean)
-        run: npm ci
+      # npm 11.10+ honours min-release-age in .npmrc.
+      - name: Use npm 11
+        run: npm install -g npm@11.21.3 --ignore-scripts
+
+      - name: Install (clean, no install scripts)
+        run: npm ci --ignore-scripts
 
       - name: Lint
         run: npm run lint

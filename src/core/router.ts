@@ -86,12 +86,15 @@ export class Router {
     }
 
     // 1b. Allowlists: a sender or channel outside them never wakes an agent and
-    // gets no diagnostic, so the mesh does not reveal itself to them.
-    const { allowed_users, allowed_channels } = this.config.mesh
-    if (allowed_users.length > 0 && !allowed_users.includes(msg.senderId)) {
+    // gets no diagnostic, so the mesh does not reveal itself to them. An empty
+    // list fails closed unless the matching allow_any_* flag opts in.
+    const { allowed_users, allowed_channels, allow_any_user, allow_any_channel } = this.config.mesh
+    if (allowed_users.length === 0 ? !allow_any_user : !allowed_users.includes(msg.senderId)) {
       return this.reject('not_allowed', 'sender not in allowed_users')
     }
-    if (allowed_channels.length > 0 && !allowed_channels.includes(msg.channel)) {
+    if (
+      allowed_channels.length === 0 ? !allow_any_channel : !allowed_channels.includes(msg.channel)
+    ) {
       return this.reject('not_allowed', 'channel not in allowed_channels')
     }
 
