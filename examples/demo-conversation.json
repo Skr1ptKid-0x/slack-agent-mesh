@@ -5,7 +5,9 @@
       "max_hops": 4,
       "max_messages": 12,
       "trace_ttl_seconds": 3600,
-      "state_path": ":memory:"
+      "state_path": ":memory:",
+      "allow_any_user": true,
+      "allow_any_channel": true
     },
     "agents": [
       {

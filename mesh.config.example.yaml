@@ -7,15 +7,18 @@
 
 mesh:
   # Loop-prevention budget for a single human-initiated trace.
-  max_hops: 4 # max delegation depth (human -> a -> b -> ...)
+  max_hops: 2 # max delegation depth (human -> a -> b); 2 leaves room for one reviewer hop
   max_messages: 12 # max agent turns per trace
   trace_ttl_seconds: 3600 # a trace older than this can no longer delegate
   debug: false # when true, prompts are logged (still redacted for tokens)
   state_path: .mesh/state.sqlite # SQLite persistence; ':memory:' for ephemeral
-  # Who may start a turn, and where. Empty lists admit any non-bot user in any
-  # channel or DM the app can see, so set both for a real workspace.
+  # Who may start a turn, and where. An empty list rejects every message
+  # (fails closed). Set both for a real workspace.
   allowed_users: [] # Slack user ids, e.g. ["U0123ABCD"]
   allowed_channels: [] # Slack channel or DM ids, e.g. ["C0123ABCD"]
+  # Opt-ins to admit anyone when a list is empty. Leave false outside a sandbox.
+  allow_any_user: false
+  allow_any_channel: false
 
   slack:
     bot_token_env: SLACK_BOT_TOKEN # xoxb- token, resolved from this env var

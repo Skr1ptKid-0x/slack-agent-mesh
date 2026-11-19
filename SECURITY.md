@@ -62,6 +62,16 @@ Out of scope:
   never logged unless `mesh.debug` is explicitly enabled.
 - Untrusted content is separated from trusted agent output before any delegation.
 - No hidden telemetry or hosted coordination dependency beyond Slack itself.
+- Sender and channel allowlists **fail closed**: an empty list rejects every
+  message unless `allow_any_user` or `allow_any_channel` opts in.
+
+## Dependency updates
+
+- `.npmrc` sets `min-release-age=1` (npm 11.10 or newer) so a version published
+  less than a day ago is never installed, and `ignore-scripts=true` so no
+  dependency runs code at install time. CI and the Dockerfile install npm 11.
+- Dependabot waits 3 days (7 for a major version) before proposing an update.
+- CI actions are pinned to commit SHAs and the workflow token is read only.
 
 See the [Security section of the README](README.md#security) for the operational
 detail.

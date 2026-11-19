@@ -53,3 +53,15 @@ describe('doctor command preflight', () => {
     )
   })
 })
+
+describe('doctor allowlist preflight', () => {
+  it('warns that empty allowlists reject every message', () => {
+    const report = runDoctor(configFor(process.execPath), process.env)
+    expect(report.checks).toContainEqual(
+      expect.objectContaining({ name: 'allowed users', status: 'warn' }),
+    )
+    expect(report.checks).toContainEqual(
+      expect.objectContaining({ name: 'allowed channels', status: 'warn' }),
+    )
+  })
+})

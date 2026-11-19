@@ -57,6 +57,9 @@ export function createHarness(opts: HarnessOptions): Harness {
       max_messages: opts.maxMessages ?? 12,
       trace_ttl_seconds: opts.ttlSeconds ?? 3600,
       state_path: ':memory:',
+      // Mock-only harness: admit any sender and channel explicitly.
+      allow_any_user: true,
+      allow_any_channel: true,
     },
     agents: opts.agents.map((a) => ({
       name: a.name,

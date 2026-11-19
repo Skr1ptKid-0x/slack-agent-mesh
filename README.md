@@ -522,8 +522,9 @@ channel, and secrets must never leak.**
 
 - **Sender and channel allowlists.** `mesh.allowed_users` and
   `mesh.allowed_channels` restrict who may start a turn and where. A message
-  outside them is dropped silently before any adapter runs. Both default to
-  empty, which admits any non-bot user in any channel or DM the app can see.
+  outside them is dropped silently before any adapter runs. Both fail closed:
+  an empty list rejects every message unless `mesh.allow_any_user` or
+  `mesh.allow_any_channel` is set to `true`. `doctor` warns about either case.
 - **Secrets stay in the environment.** Config references env-var *names*. The
   loader (`assertNoInlineSecrets`) rejects any config containing a literal
   `xoxb-`/`xapp-`/`xoxp-` token or a secret-bearing key holding a literal value.

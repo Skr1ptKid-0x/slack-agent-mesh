@@ -81,10 +81,20 @@ export const meshSchema = z.object({
   debug: z.boolean().default(false),
   /** Path to the SQLite state file; ':memory:' for ephemeral runs. */
   state_path: z.string().default('.mesh/state.sqlite'),
-  /** Slack user ids allowed to start a turn. Empty admits any non-bot user. */
+  /**
+   * Slack user ids allowed to start a turn. Empty rejects every sender unless
+   * `allow_any_user` is true, so a missing list fails closed.
+   */
   allowed_users: z.array(z.string().min(1)).default([]),
-  /** Slack channel ids (including DM ids) the mesh acts in. Empty admits all. */
+  /**
+   * Slack channel ids (including DM ids) the mesh acts in. Empty rejects every
+   * channel unless `allow_any_channel` is true.
+   */
   allowed_channels: z.array(z.string().min(1)).default([]),
+  /** Explicit opt-in to admit any non-bot user when `allowed_users` is empty. */
+  allow_any_user: z.boolean().default(false),
+  /** Explicit opt-in to act in any channel or DM when `allowed_channels` is empty. */
+  allow_any_channel: z.boolean().default(false),
   slack: slackSchema,
 })
 
