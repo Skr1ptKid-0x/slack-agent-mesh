@@ -11,6 +11,8 @@ function setup(overrides?: {
   ttl?: number
   allowedUsers?: string[]
   allowedChannels?: string[]
+  allowAnyUser?: boolean
+  allowAnyChannel?: boolean
 }) {
   const config = validateConfig({
     mesh: {
@@ -20,6 +22,9 @@ function setup(overrides?: {
       state_path: ':memory:',
       allowed_users: overrides?.allowedUsers ?? [],
       allowed_channels: overrides?.allowedChannels ?? [],
+      // Tests that do not set a list opt in explicitly, as a real config must.
+      allow_any_user: overrides?.allowAnyUser ?? overrides?.allowedUsers === undefined,
+      allow_any_channel: overrides?.allowAnyChannel ?? overrides?.allowedChannels === undefined,
     },
     agents: [
       { name: 'rook', adapter: { type: 'mock', reply: '' } },
@@ -140,10 +145,35 @@ describe('sender and channel allowlists', () => {
     expect(d.reason).toBe('not_allowed')
   })
 
-  it('admits anyone when both lists are empty', () => {
-    const { router } = setup()
+  it('rejects everyone when both lists are empty and nothing opts in (fails closed)', () => {
+    const { router } = setup({ allowAnyUser: false, allowAnyChannel: false })
+    const d = router.admit(human({ senderId: 'U2', channel: 'C2', text: '@rook help' }))
+    expect(d.admit).toBe(false)
+    expect(d.reason).toBe('not_allowed')
+  })
+
+  it('rejects an empty user list even when channels are open', () => {
+    const { router } = setup({ allowAnyUser: false, allowAnyChannel: true })
+    const d = router.admit(human({ senderId: 'U2', channel: 'C2', text: '@rook help' }))
+    expect(d.admit).toBe(false)
+  })
+
+  it('rejects an empty channel list even when users are listed', () => {
+    const { router } = setup({ allowedUsers: ['U1'], allowAnyChannel: false })
+    const d = router.admit(human({ senderId: 'U1', channel: 'C2', text: '@rook help' }))
+    expect(d.admit).toBe(false)
+  })
+
+  it('admits anyone only with both allow_any flags set', () => {
+    const { router } = setup({ allowAnyUser: true, allowAnyChannel: true })
     const d = router.admit(human({ senderId: 'U2', channel: 'C2', text: '@rook help' }))
     expect(d.admit).toBe(true)
+  })
+
+  it('ignores allow_any_user when a user list is set', () => {
+    const { router } = setup({ allowedUsers: ['U1'], allowAnyUser: true })
+    const d = router.admit(human({ senderId: 'U2', text: '@rook help' }))
+    expect(d.admit).toBe(false)
   })
 })
 

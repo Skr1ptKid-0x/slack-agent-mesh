@@ -134,6 +134,39 @@ export function runDoctor(configPath: string, env: NodeJS.ProcessEnv = process.e
     }
   }
 
+  // Admission allowlists: an empty list fails closed unless opted in.
+  const { allowed_users, allowed_channels, allow_any_user, allow_any_channel } = config.mesh
+  checks.push(
+    allowed_users.length > 0
+      ? { name: 'allowed users', status: 'ok', detail: `${allowed_users.length} listed` }
+      : allow_any_user
+        ? {
+            name: 'allowed users',
+            status: 'warn',
+            detail: 'allow_any_user: any non-bot user can start a turn',
+          }
+        : {
+            name: 'allowed users',
+            status: 'warn',
+            detail: 'empty: every message is rejected until you list user ids',
+          },
+  )
+  checks.push(
+    allowed_channels.length > 0
+      ? { name: 'allowed channels', status: 'ok', detail: `${allowed_channels.length} listed` }
+      : allow_any_channel
+        ? {
+            name: 'allowed channels',
+            status: 'warn',
+            detail: 'allow_any_channel: the mesh acts in any channel or DM it can see',
+          }
+        : {
+            name: 'allowed channels',
+            status: 'warn',
+            detail: 'empty: every message is rejected until you list channel ids',
+          },
+  )
+
   checks.push({
     name: 'loop limits',
     status: 'ok',
